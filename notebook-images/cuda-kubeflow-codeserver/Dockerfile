@@ -44,7 +44,7 @@ RUN curl -fsSLO https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2
  && dpkg -i cuda-keyring_1.0-1_all.deb \
  && apt-get install -y --no-install-recommends \
       cuda-cudart-11-8=${NV_CUDA_CUDART_VERSION} \
-      ${NV_CUDA_COMPAT_PACKAGE}
+      ${NV_CUDA_COMPAT_PACKAGE} \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
