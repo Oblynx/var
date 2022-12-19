@@ -48,12 +48,8 @@ RUN CODE_RELEASE=$(curl -sX GET https://api.github.com/repos/coder/code-server/r
     curl -fOL "https://github.com/coder/code-server/releases/download/v${CODE_RELEASE}/code-server_${CODE_RELEASE}_amd64.deb" && \
     dpkg -i ./code-server_${CODE_RELEASE}_amd64.deb && rm ./code-server_${CODE_RELEASE}_amd64.deb
 
-# Install Pytorch
-RUN pip3 install --quiet --extra-index-url https://download.pytorch.org/whl/cu116 torch torchvision torchaudio
-
-# Install other base python dependencies
-COPY /requirements.txt .
-RUN pip3 install --quiet -r requirements.txt
+## Install Pytorch
+#RUN pip3 install --quiet --extra-index-url https://download.pytorch.org/whl/cu116 torch torchvision torchaudio
 
 COPY /root /
 
