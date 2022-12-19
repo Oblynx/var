@@ -1,5 +1,10 @@
-### >>> 1: Notebook Base <<<
-FROM ubuntu:22.04 as NOTEBOOK_BASE
+# Sources:
+# - notebook: https://github.com/kubeflow/kubeflow/blob/master/components/example-notebook-servers/base/Dockerfile
+# - cuda: https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/11.8.0/ubuntu2204/base/Dockerfile
+
+### >>>>> 1: Base packages + CUDA <<<<<
+
+FROM ubuntu:22.04 as BASE_CUDA11
 
 # common environemnt variables
 ENV NB_USER jovyan
@@ -22,11 +27,84 @@ SHELL ["/bin/bash", "-c"]
 RUN export DEBIAN_FRONTEND=noninteractive \
  && apt-get -yq update \
  && apt-get -yq install --no-install-recommends \
-    apt-transport-https bash bzip2 ca-certificates curl git gnupg gnupg2 locales lsb-release nano \
-    software-properties-common tzdata unzip vim wget zip \
-    htop sudo man procps net-tools jq libatomic1 netcat python3 python3-pip \
+      apt-transport-https bash bzip2 ca-certificates curl git gnupg gnupg2 locales lsb-release nano \
+      software-properties-common tzdata unzip vim wget zip \
+      htop sudo man procps net-tools jq libatomic1 netcat python3 python3-pip
+
+# Install CUDA 11
+
+ENV NVARCH x86_64
+ENV NVIDIA_REQUIRE_CUDA "cuda>=11.8 brand=tesla,driver>=450,driver<451 brand=tesla,driver>=470,driver<471 brand=unknown,driver>=470,driver<471 brand=nvidia,driver>=470,driver<471 brand=nvidiartx,driver>=470,driver<471 brand=geforce,driver>=470,driver<471 brand=geforcertx,driver>=470,driver<471 brand=quadro,driver>=470,driver<471 brand=quadrortx,driver>=470,driver<471 brand=titan,driver>=470,driver<471 brand=titanrtx,driver>=470,driver<471 brand=tesla,driver>=510,driver<511 brand=unknown,driver>=510,driver<511 brand=nvidia,driver>=510,driver<511 brand=nvidiartx,driver>=510,driver<511 brand=geforce,driver>=510,driver<511 brand=geforcertx,driver>=510,driver<511 brand=quadro,driver>=510,driver<511 brand=quadrortx,driver>=510,driver<511 brand=titan,driver>=510,driver<511 brand=titanrtx,driver>=510,driver<511 brand=tesla,driver>=515,driver<516 brand=unknown,driver>=515,driver<516 brand=nvidia,driver>=515,driver<516 brand=nvidiartx,driver>=515,driver<516 brand=geforce,driver>=515,driver<516 brand=geforcertx,driver>=515,driver<516 brand=quadro,driver>=515,driver<516 brand=quadrortx,driver>=515,driver<516 brand=titan,driver>=515,driver<516 brand=titanrtx,driver>=515,driver<516"
+ENV NV_CUDA_CUDART_VERSION 11.8.89-1
+ENV NV_CUDA_COMPAT_PACKAGE cuda-compat-11-8
+ENV CUDA_VERSION 11.8.0
+
+# install - CUDA11
+RUN curl -fsSLO https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/${NVARCH}/cuda-keyring_1.0-1_all.deb \
+ && dpkg -i cuda-keyring_1.0-1_all.deb \
+ && apt-get install -y --no-install-recommends \
+      cuda-cudart-11-8=${NV_CUDA_CUDART_VERSION} \
+      ${NV_CUDA_COMPAT_PACKAGE}
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
+
+# Required for nvidia-docker v1
+RUN echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf \
+ && echo "/usr/local/nvidia/lib64" >> /etc/ld.so.conf.d/nvidia.conf
+
+ENV PATH /usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64
+
+# nvidia-container-runtime
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
+
+# CUDA runtime
+
+ENV NV_CUDA_LIB_VERSION 11.8.0-1
+ENV NV_NVTX_VERSION 11.8.86-1
+ENV NV_LIBCUSPARSE_VERSION 11.7.5.86-1
+ENV NV_LIBNPP_VERSION 11.8.0.86-1
+ENV NV_LIBNPP_PACKAGE libnpp-11-8=${NV_LIBNPP_VERSION}
+
+ENV NV_LIBCUBLAS_VERSION 11.11.3.6-1
+ENV NV_LIBCUBLAS_PACKAGE_NAME libcublas-11-8
+ENV NV_LIBCUBLAS_PACKAGE ${NV_LIBCUBLAS_PACKAGE_NAME}=${NV_LIBCUBLAS_VERSION}
+
+ENV NCCL_VERSION 2.15.5-1
+ENV NV_LIBNCCL_PACKAGE_NAME libnccl2
+ENV NV_LIBNCCL_PACKAGE_VERSION 2.15.5-1
+ENV NV_LIBNCCL_PACKAGE ${NV_LIBNCCL_PACKAGE_NAME}=${NV_LIBNCCL_PACKAGE_VERSION}+cuda11.8
+
+ENV NV_CUDNN_VERSION 8.6.0.163
+ENV NV_CUDNN_PACKAGE_NAME "libcudnn8"
+ENV NV_CUDNN_PACKAGE "libcudnn8=$NV_CUDNN_VERSION-1+cuda11.8"
+
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cuda-libraries-11-8=${NV_CUDA_LIB_VERSION} \
+    cuda-command-line-tools-11-8=${NV_CUDA_LIB_VERSION} \
+    ${NV_LIBNPP_PACKAGE} \
+    cuda-nvtx-11-8=${NV_NVTX_VERSION} \
+    libcusparse-11-8=${NV_LIBCUSPARSE_VERSION} \
+    ${NV_LIBCUBLAS_PACKAGE} \
+    ${NV_LIBNCCL_PACKAGE} \
+    ${NV_CUDNN_PACKAGE} \
+    && rm -rf /var/lib/apt/lists/*
+
+# Keep apt from auto upgrading the cublas and nccl packages. See https://gitlab.com/nvidia/container-images/cuda/-/issues/88
+RUN apt-mark hold ${NV_LIBCUBLAS_PACKAGE_NAME} ${NV_LIBNCCL_PACKAGE_NAME} ${NV_CUDNN_PACKAGE}
+
+# Add entrypoint items
+COPY entrypoint.d/ /opt/nvidia/entrypoint.d/
+COPY nvidia_entrypoint.sh /opt/nvidia/
+ENV NVIDIA_PRODUCT_NAME="CUDA"
+ENTRYPOINT ["/opt/nvidia/nvidia_entrypoint.sh"]
+
+
+### >>>>> 2: Notebook <<<<<
+
+FROM BASE_CUDA11 as NOTEBOOK_CUDA11
 
 # install - s6 overlay
 RUN export GNUPGHOME=/tmp/ \
@@ -61,12 +139,13 @@ ENV LC_ALL en_US.UTF-8
 
 USER $NB_UID
 
-### >>> 2: Codeserver <<<
-FROM NOTEBOOK_BASE
+### >>>>> 2: Codeserver <<<<<
+
+FROM NOTEBOOK_CUDA11
 USER root
 
 # args - software versions
-ARG CODESERVER_PYTHON_VERSION=2021.5.842923320
+ARG CODESERVER_PYTHON_VERSION=2022.21.13531008
 
 # Install code-server
 RUN CODE_RELEASE=$(curl -sX GET https://api.github.com/repos/coder/code-server/releases/latest \
