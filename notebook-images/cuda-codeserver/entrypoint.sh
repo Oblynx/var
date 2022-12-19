@@ -17,4 +17,10 @@ if [ "${DOCKER_USER-}" ] && [ "$DOCKER_USER" != "$USER" ]; then
   sudo sed -i "/coder/d" /etc/sudoers.d/nopasswd
 fi
 
+# SSL certificates given are expected to be mounted here
+[[ -f "/certs/cert.pem" && -f "/certs/key.pem" ]] || {
+  # but if they don't exist, then generate a new self-signed certificate
+  openssl req -x509 -nodes -newkey rsa:4096 -keyout /certs/key.pem -out /certs/cert.pem -sha256 -days 365 -subj '/CN=localhost'
+}
+
 dumb-init /usr/bin/code-server "$@"

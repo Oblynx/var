@@ -46,6 +46,9 @@ RUN CODE_RELEASE=$(curl -sX GET https://api.github.com/repos/coder/code-server/r
 ## Install Pytorch
 #RUN pip3 install --quiet --extra-index-url https://download.pytorch.org/whl/cu116 torch torchvision torchaudio
 
+# This is where SSL certificates can be mounted
+RUN mkdir /certs && chown -R coder:coder /certs
+
 # Switch to default user
 USER coder
 ENV USER=coder
@@ -53,4 +56,4 @@ ENV HOME=/home/coder
 WORKDIR /home/coder
 
 EXPOSE 8443
-ENTRYPOINT ["/usr/bin/entrypoint.sh", "--bind-addr", "0.0.0.0:8443", "--disable-telemetry", "."]
+ENTRYPOINT ["/usr/bin/entrypoint.sh", "--bind-addr", "0.0.0.0:8443", "--cert", "/certs/cert.pem", "--cert-key", "/certs/key.pem", "--disable-telemetry", "."]
