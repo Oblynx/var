@@ -27,6 +27,8 @@ ENV LANG=en_US.UTF-8
 # Create a non-root user
 RUN adduser --disabled-password --gecos '' --shell /bin/bash coder
 RUN echo "coder ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-coder
+COPY ./entrypoint.sh /usr/bin/entrypoint.sh
+RUN chown coder:coder /usr/bin/entrypoint.sh
 
 # Install fixuid
 RUN curl -fsSL "https://github.com/boxboat/fixuid/releases/download/v0.4.1/fixuid-0.4.1-linux-amd64.tar.gz" | tar -C /usr/local/bin -xzf - && \
@@ -40,7 +42,6 @@ RUN CODE_RELEASE=$(curl -sX GET https://api.github.com/repos/coder/code-server/r
       | awk '/tag_name/{print $4;exit}' FS='[""]' | sed 's|^v||'); \
     curl -fOL "https://github.com/coder/code-server/releases/download/v${CODE_RELEASE}/code-server_${CODE_RELEASE}_amd64.deb" && \
     dpkg -i ./code-server_${CODE_RELEASE}_amd64.deb && rm ./code-server_${CODE_RELEASE}_amd64.deb
-COPY ./entrypoint.sh /usr/bin/entrypoint.sh
 
 ## Install Pytorch
 #RUN pip3 install --quiet --extra-index-url https://download.pytorch.org/whl/cu116 torch torchvision torchaudio
