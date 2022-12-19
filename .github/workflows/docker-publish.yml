@@ -19,7 +19,7 @@ env:
   # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}/notebook/codeserver-pytorch
+  IMAGE_NAME: ${{ github.repository }}/notebook/cuda-codeserver
 
 jobs:
   build:
@@ -72,7 +72,7 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v3
         with:
-          context: notebook-images/codeserver-pytorch
+          context: notebook-images/cuda-codeserver
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
