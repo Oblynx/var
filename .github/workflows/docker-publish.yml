@@ -19,7 +19,8 @@ env:
   # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}/notebook/cuda-codeserver
+  IMAGE_NAME: ${{ github.repository }}/notebook/cuda-kubeflow-codeserver
+  IMAGE_PATH: notebook-images/cuda-kubeflow-codeserver
 
 jobs:
   build:
@@ -72,7 +73,7 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v3
         with:
-          context: notebook-images/cuda-codeserver
+          context: ${{ env.IMAGE_PATH }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
