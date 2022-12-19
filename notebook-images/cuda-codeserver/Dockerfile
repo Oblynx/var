@@ -53,4 +53,4 @@ ENV HOME=/home/coder
 WORKDIR /home/coder
 
 EXPOSE 8443
-ENTRYPOINT ["/usr/bin/entrypoint.sh", "--bind-addr", "0.0.0.0:8443", "--cert", "--disable-telemetry", "."]
+ENTRYPOINT ["/usr/bin/entrypoint.sh", "--bind-addr", "0.0.0.0:8443", "--disable-telemetry", "."]
