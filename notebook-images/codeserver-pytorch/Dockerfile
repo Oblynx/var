@@ -52,7 +52,7 @@ RUN CODE_RELEASE=$(curl -sX GET https://api.github.com/repos/coder/code-server/r
 RUN pip3 install --quiet --extra-index-url https://download.pytorch.org/whl/cu116 torch torchvision torchaudio
 
 # Install other base python dependencies
-COPY requirements.txt .
+COPY /requirements.txt .
 RUN pip3 install --quiet -r requirements.txt
 
 COPY /root /
