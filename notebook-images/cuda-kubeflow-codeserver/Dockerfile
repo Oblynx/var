@@ -4,7 +4,7 @@
 
 ### >>>>> 1: Base packages + CUDA <<<<<
 
-FROM ubuntu:22.04 as BASE_CUDA11
+FROM ubuntu:22.04 as base_cuda11
 
 # common environemnt variables
 ENV NB_USER jovyan
@@ -104,7 +104,7 @@ ENTRYPOINT ["/opt/nvidia/nvidia_entrypoint.sh"]
 
 ### >>>>> 2: Notebook <<<<<
 
-FROM BASE_CUDA11 as NOTEBOOK_CUDA11
+FROM base_cuda11 as notebook_cuda11
 
 # install - s6 overlay
 RUN export GNUPGHOME=/tmp/ \
@@ -141,7 +141,7 @@ USER $NB_UID
 
 ### >>>>> 2: Codeserver <<<<<
 
-FROM NOTEBOOK_CUDA11
+FROM notebook_cuda11
 USER root
 
 # args - software versions
