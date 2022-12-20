@@ -158,13 +158,6 @@ COPY --chown=jovyan:users s6/ /etc
 
 USER $NB_UID
 
-# install - requirements.txt
-COPY --chown=jovyan:users requirements.txt /tmp
-RUN python3 -m pip install -r /tmp/requirements.txt --quiet --no-cache-dir \
- && rm -f /tmp/requirements.txt \
- && chown -R ${NB_USER}:users ${CONDA_DIR} \
- && chown -R ${NB_USER}:users ${HOME}
-
 # install - codeserver extensions
 RUN curl -# -L -o /tmp/ms-python-release.vsix "https://github.com/microsoft/vscode-python/releases/download/${CODESERVER_PYTHON_VERSION}/ms-python-release.vsix" \
  && code-server --install-extension /tmp/ms-python-release.vsix \
